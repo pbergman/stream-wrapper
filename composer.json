@@ -1,0 +1,21 @@
+{
+  "name": "pbergman/stream-wrapper",
+  "type": "library",
+  "description": "A stream wrapper for registering and using resources as url argument",
+  "keywords": ["stream wrapper", "stream", "wrapper"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Philip Bergman",
+      "email": "pbergman@live.nl"
+    }
+  ],
+  "require": {
+    "php": ">=5.6.0"
+  },
+  "autoload": {
+    "psr-0": {
+      "PBergman": "src"
+    }
+  }
+}
