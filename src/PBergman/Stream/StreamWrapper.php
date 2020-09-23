@@ -88,6 +88,10 @@ class StreamWrapper
      */
     public function stream_close()
     {
+        if (false !== $key = array_search($this->inner, self::$resources)) {
+            unset(self::$resources[$key]);
+        }
+
         return fclose($this->inner);
     }
 
@@ -118,7 +122,7 @@ class StreamWrapper
     /**
      * @inheritdoc
      */
-    public function stream_metadata($path, $option , $value)
+    public function stream_metadata($path, $option, $value)
     {
         $meta = stream_get_meta_data($this->getInnerFromPath($path));
 
@@ -156,11 +160,7 @@ class StreamWrapper
      */
     public function stream_seek($offset, $whence)
     {
-        if (0 === fseek($this->inner, $offset, $whence)) {
-            return true;
-        }
-
-        return false;
+        return 0 === fseek($this->inner, $offset, $whence);
     }
 
     /**
@@ -173,7 +173,7 @@ class StreamWrapper
                 return stream_set_blocking($this->inner, $arg1);
                 break;
             case STREAM_OPTION_READ_TIMEOUT:
-                return (is_null($arg2)) ? stream_set_timeout($this->inner, $arg1) : stream_set_timeout($this->inner, $arg1, $arg2);
+                return (null === $arg2) ? stream_set_timeout($this->inner, $arg1) : stream_set_timeout($this->inner, $arg1, $arg2);
                 break;
             case STREAM_OPTION_WRITE_BUFFER:
                 switch ($arg1) {
@@ -235,8 +235,20 @@ class StreamWrapper
     /**
      * @inheritdoc
      */
-    public function url_stat($path)
+    public function url_stat($path, $flags)
     {
-        return stat(stream_get_meta_data($this->getInnerFromPath($path))['uri']);
+        $inner = $this->getInnerFromPath($path);
+        $meta  = stream_get_meta_data($inner);
+        $quiet = (\STREAM_URL_STAT_QUIET === (\STREAM_URL_STAT_QUIET & $flags));
+
+        if ('PHP' === $meta['wrapper_type'] && ('TEMP' === $meta['stream_type'] || 'MEMORY' === $meta['stream_type'])) {
+            return ($quiet) ? @fstat($inner) ?? [] : fstat($inner);
+        }
+
+        if ((\STREAM_URL_STAT_LINK === (\STREAM_URL_STAT_LINK & $flags)) && is_link($meta['uri'])) {
+            return ($quiet) ? @lstat($meta['uri']) ?? [] : lstat($meta['uri']);
+        }
+
+        return ($quiet) ? @stat($meta['uri']) ?? [] : stat($meta['uri']);
     }
 }
